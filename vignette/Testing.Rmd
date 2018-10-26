@@ -56,6 +56,10 @@ spec_grid <- spec_grid %>% mutate(spec = 1:n())
 set.seed(1)
 DGP <- apply(spec_grid, 1, create_sv, T_= 1000)
 plot(DGP[[1]]$y)
+
+a <- svmod::SV(DGP[[1]]$y, draws = 1000, verbose = TRUE, print_every = 500)
+b <- svmod::SVJ(DGP[[1]]$y, draws = 1000, verbose = TRUE, print_every = 500)
+
 ```
 
 

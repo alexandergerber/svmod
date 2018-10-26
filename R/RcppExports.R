@@ -20,14 +20,17 @@ draw_theta_cpp_test <- function(h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu,
     .Call('_svmod_draw_theta_cpp_test', PACKAGE = 'svmod', h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv)
 }
 
+#' @export
 invGamme_cpp <- function(cT, CT) {
     .Call('_svmod_invGamme_cpp', PACKAGE = 'svmod', cT, CT)
 }
 
+#' @export
 inv_Eigen <- function(M) {
     .Call('_svmod_inv_Eigen', PACKAGE = 'svmod', M)
 }
 
+#' @export
 chol_Eigen <- function(M) {
     .Call('_svmod_chol_Eigen', PACKAGE = 'svmod', M)
 }

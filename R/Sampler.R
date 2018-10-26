@@ -19,31 +19,26 @@
 
 ### MCMC
 #' @export
-SVJ_C_sample_efficient <- function(y, draws, post = (draws/2+1):draws, verbose = FALSE, print_every = 1000,
-                                  init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
-                                              "h" = -9.7, "h0" = -9,   # h could be a vector
-                                              "q" = 0, "zeta" = 0.05,
-                                              "kappa" = 0.1, "delta" = 0.1
-                                  ),
-                                  prior = list("b_mu" = 0, "B_mu" = 100,
-                                               "alpha_0" = 5, "beta_0" = 1.5,
-                                               "B_sigma" = 1,
-                                               "B_0" = cbind(c(1e12,0),c(0,1e8)),
-                                               "mu_delta" = 0.01, "B_delta" = 1,
-                                               "kappa_alpha" = 2, "kappa_beta" = 100
-                                  )
+SVJ <- function(y, draws, post = (draws/2+1):draws, verbose = FALSE, print_every = 1000,
+                init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
+                            "h" = -9.7, "h0" = -9,   # h could be a vector
+                            "q" = 0, "zeta" = 0.05,
+                            "kappa" = 0.1, "delta" = 0.1
+                ),
+                prior = list("b_mu" = 0, "B_mu" = 100,
+                             "alpha_0" = 5, "beta_0" = 1.5,
+                             "B_sigma" = 1,
+                             "B_0" = cbind(c(1e12,0),c(0,1e8)),
+                             "mu_delta" = 0.01, "B_delta" = 1,
+                             "kappa_alpha" = 2, "kappa_beta" = 100
+                )
 ){
-  comp <- data.frame(p    = c(0.0073, 0.10556, 0.00002, 0.04395, 0.34001, 0.24566, 0.25750),
-                     mu   = c(-10.12999, -3.97281, -8.56686, 2.77786, 0.61942, 1.79518, -1.08819),
-                     sig2 = c(5.79596, 2.61369, 5.17950, 0.16735, 0.64009, 0.34023, 1.26261))
   T_ <- length(y)
   # Storage
   s_draws     <- matrix(nrow = draws, ncol = T_)
-  h_draws     <- matrix(nrow = draws, ncol = T_)
+  h_draws  <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
   q_draws     <- matrix(nrow = draws, ncol = T_)
   zeta_draws  <- matrix(nrow = draws, ncol = T_)
-  # h_draws  <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
-  h0_draws <- numeric(draws)
   theta_draws <- matrix(nrow = draws, ncol = 3,
                         dimnames = list(NULL, c("mu", "phi", "sigma2"))
   )
@@ -56,30 +51,27 @@ SVJ_C_sample_efficient <- function(y, draws, post = (draws/2+1):draws, verbose =
   h_draws[1, ]     <- init[["h"]]
   q_draws[1, ]     <- init[["q"]]
   zeta_draws[1, ]  <- init[["zeta"]]
-  h0_draws[1]      <- init[["h0"]]
   kappa_draws[1]   <- init[["kappa"]]
   delta_draws[1]   <- init[["delta"]]
   # MCMC
   for(i in 2:draws){
     if(verbose == TRUE) if(i%%print_every == 0) print(i)
-    s_draws[i, ] <- draw_s_cpp(y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), h = h_draws[i-1, ])
-    h_temp       <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
+    s_draws[i, ] <- draw_s_cpp(y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), h = h_draws[i-1, -1])
+    h_draws[i, ] <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
                                phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
                                y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), s = s_draws[i, ])
-    h_draws[i, ]     <- h_temp[-1]
-    h0_draws[i]      <- h_temp[1]
-    theta_draws[i, ] <- draw_theta_cpp(h = h_draws[i, -1], h0 =  h0_draws[i],
+    theta_draws[i, ] <- draw_theta_cpp(h = h_draws[i, -1], h0 =  h_draws[i, 1],
                                        mu = theta_draws[i-1, "mu"], phi = theta_draws[i-1, "phi"], sigma = sqrt(theta_draws[i-1, "sigma2"]),
                                        Bsigma = prior[["B_sigma"]], a0 = prior[["alpha_0"]], b0 = prior[["beta_0"]],
                                        bmu = prior[["b_mu"]],  Bmu= prior[["B_mu"]],
                                        B011inv= 1/prior[["B_0"]][1,1],  B022inv = 1/prior[["B_0"]][2,2])
-    zeta_draws[i, ] <- draw_zeta(y = y, h = h_draws[i, ], q = q_draws[i-1, ], delta = delta_draws[i-1])
-    q_draws[i, ]    <- draw_q(y = y, h = h_draws[i, ], zeta = zeta_draws[i, ], kappa = kappa_draws[i-1])
+    zeta_draws[i, ] <- draw_zeta(y = y, h = h_draws[i, -1], q = q_draws[i-1, ], delta = delta_draws[i-1])
+    q_draws[i, ]    <- draw_q(y = y, h = h_draws[i, -1], zeta = zeta_draws[i, ], kappa = kappa_draws[i-1])
     kappa_draws[i]  <- draw_kappa(q = q_draws[i, ], prior = prior)
-    delta_draws[i]  <- draw_delta(y = y, h = h_draws[i, ], q = q_draws[i, ], prior = prior, delta_old = delta_draws[i-1])
+    delta_draws[i]  <- draw_delta(y = y, h = h_draws[i, -1], q = q_draws[i, ], prior = prior, delta_old = delta_draws[i-1])
 
   }
-  invisible(list("s" = s_draws[post, ], "h" =  h_draws[post, ], "h0" =  h0_draws[post], "theta" = theta_draws[post, ],
+  invisible(list("s" = s_draws[post, ], "h" =  h_draws[post, -1], "h0" =  h_draws[post, 1], "theta" = theta_draws[post, ],
                  "zeta" = zeta_draws[post, ], "q" = q_draws[post, ], "kappa" = kappa_draws[post], "delta" = delta_draws[post]))
 }
 
@@ -87,25 +79,20 @@ SVJ_C_sample_efficient <- function(y, draws, post = (draws/2+1):draws, verbose =
 
 ### MCMC
 #' @export
-SV_C_sample_efficient <- function(y, draws, post = (draws/2+1):draws, verbose = FALSE, print_every = 1000,
-                                  init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
-                                              "h" = -9.7, "h0" = -9   # h could be a vector
-                                  ),
-                                  prior = list("b_mu" = 0, "B_mu" = 100,
-                                               "alpha_0" = 5, "beta_0" = 1.5,
-                                               "B_sigma" = 1,
-                                               "B_0" = cbind(c(1e12,0),c(0,1e8))
-                                  )
+SV <- function(y, draws, post = (draws/2+1):draws, verbose = FALSE, print_every = 1000,
+                init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
+                            "h" = -9.7, "h0" = -9   # h could be a vector
+                ),
+                prior = list("b_mu" = 0, "B_mu" = 100,
+                             "alpha_0" = 5, "beta_0" = 1.5,
+                             "B_sigma" = 1,
+                             "B_0" = cbind(c(1e12,0),c(0,1e8))
+                )
 ){
-  comp <- data.frame(p    = c(0.0073, 0.10556, 0.00002, 0.04395, 0.34001, 0.24566, 0.25750),
-                     mu   = c(-10.12999, -3.97281, -8.56686, 2.77786, 0.61942, 1.79518, -1.08819),
-                     sig2 = c(5.79596, 2.61369, 5.17950, 0.16735, 0.64009, 0.34023, 1.26261))
   T_ <- length(y)
   # Storage
   s_draws  <- matrix(nrow = draws, ncol = T_)
-  h_draws  <- matrix(nrow = draws, ncol = T_)
-  # h_draws  <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
-  h0_draws <- numeric(draws)
+  h_draws  <- matrix(nrow = draws, ncol = T_+1)
   theta_draws <- matrix(nrow = draws, ncol = 3,
                         dimnames = list(NULL, c("mu", "phi", "sigma2"))
   )
@@ -114,48 +101,39 @@ SV_C_sample_efficient <- function(y, draws, post = (draws/2+1):draws, verbose = 
                          "phi"    = init[["phi"]],
                          "sigma2" = init[["sigma2"]])
   h_draws[1, ]  <- init[["h"]]
-  h0_draws[1]   <- init[["h0"]]
   # MCMC
   for(i in 2:draws){
     s_draws[i, ] <- draw_s_cpp(y = y, h = h_draws[i-1, ])
-    h_temp       <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
+    h_draws[i, ]        <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
                                phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
                                y = y, s = s_draws[i, ])
-    h_draws[i, ]     <- h_temp[-1]
-    h0_draws[i]      <- h_temp[1]
-    theta_draws[i, ] <- draw_theta_cpp(h = h_draws[i, -1], h0 =  h0_draws[i],
+    theta_draws[i, ] <- draw_theta_cpp(h = h_draws[i, -1], h0 =  h_draws[i, 1] ,
                                        mu = theta_draws[i-1, "mu"], phi = theta_draws[i-1, "phi"], sigma = sqrt(theta_draws[i-1, "sigma2"]),
                                        Bsigma = prior[["B_sigma"]], a0 = prior[["alpha_0"]], b0 = prior[["beta_0"]],
                                        bmu = prior[["b_mu"]],  Bmu= prior[["B_mu"]],
                                        B011inv= 1/prior[["B_0"]][1,1],  B022inv = 1/prior[["B_0"]][2,2])
     if(verbose == TRUE) if(i%%print_every == 0) print(i)
   }
-  list("s" = s_draws[post, ], "h" =  h_draws[post, ], "h0" =  h0_draws[post], "theta" = theta_draws[post, ] )
+  list("s" = s_draws[post, ], "h" =  h_draws[post, -1], "h0" =  h_draws[post, 1], "theta" = theta_draws[post, ] )
 }
 
 
 
 #' @export
-SV_C_sample_efficient_my_theta <- function(y, draws, post = (draws/2+1):draws, verbose = FALSE, print_every = 1000,
-                                           init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
-                                                       "h" = -9.7, "h0" = -9   # h could be a vector
-                                           ),
-                                           prior = list("b_mu" = 0, "B_mu" = 100,
-                                                        "alpha_0" = 5, "beta_0" = 1.5,
-                                                        "B_sigma" = 1,
-                                                        "B_0" = cbind(c(1e12,0),c(0,1e8))
-                                           )
+SV_my_theta <- function(y, draws, post = (draws/2+1):draws, verbose = FALSE, print_every = 1000,
+                         init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
+                                     "h" = -9.7, "h0" = -9   # h could be a vector
+                         ),
+                         prior = list("b_mu" = 0, "B_mu" = 100,
+                                      "alpha_0" = 5, "beta_0" = 1.5,
+                                      "B_sigma" = 1,
+                                      "B_0" = cbind(c(1e12,0),c(0,1e8))
+                         )
 ){
-  comp <- data.frame(p    = c(0.0073, 0.10556, 0.00002, 0.04395, 0.34001, 0.24566, 0.25750),
-                     mu   = c(-10.12999, -3.97281, -8.56686, 2.77786, 0.61942, 1.79518, -1.08819),
-                     sig2 = c(5.79596, 2.61369, 5.17950, 0.16735, 0.64009, 0.34023, 1.26261))
-
   T_ <- length(y)
   # Storage
   s_draws  <- matrix(nrow = draws, ncol = T_)
-  h_draws  <- matrix(nrow = draws, ncol = T_)
-  # h_draws  <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
-  h0_draws <- numeric(draws)
+  h_draws  <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
   theta_draws <- matrix(nrow = draws, ncol = 3,
                         dimnames = list(NULL, c("mu", "phi", "sigma2"))
   )
@@ -164,20 +142,17 @@ SV_C_sample_efficient_my_theta <- function(y, draws, post = (draws/2+1):draws, v
                          "phi"    = init[["phi"]],
                          "sigma2" = init[["sigma2"]])
   h_draws[1, ]  <- init[["h"]]
-  h0_draws[1]   <- init[["h0"]]
   # MCMC
   for(i in 2:draws){
-    s_draws[i, ] <- draw_s_cpp(y = y, h = h_draws[i-1, ])
-    h_temp <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
+    s_draws[i, ]  <- draw_s_cpp(y = y, h = h_draws[i-1, ])
+    h_draws[i, ]  <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
                          phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
                          y = y, s = s_draws[i, ])
-    h_draws[i, ]     <- h_temp[-1]
-    h0_draws[i]      <- h_temp[1]
-    theta_draws[i, ] <- draw_theta(h = h_draws[i, ], h0 =  h0_draws[i], prior = prior, theta_old =  theta_draws[i-1, ], T_ = T_)
+    theta_draws[i, ] <- draw_theta(h = h_draws[i, -1], h0 =  h_draws[i, 1], prior = prior, theta_old =  theta_draws[i-1, ], T_ = T_)
     if(verbose == TRUE) if(i%%print_every == 0) print(i)
   }
 
-  list("s" = s_draws[post, ], "h" =  h_draws[post, ], "h0" =  h0_draws[post], "theta" = theta_draws[post, ] )
+  list("s" = s_draws[post, ], "h" =  h_draws[post, ], "h0" =  h0_draws[post, 1], "theta" = theta_draws[post, ] )
 }
 
 #############################################################################################################
@@ -216,26 +191,5 @@ draw_s <- function(y, h, comp){
   sig_prob <- prop.table(sig_prob_raw, 1)
   s_draw   <- apply(sig_prob, 1, function(prob) sample(1:7, 1, prob = prob) )
   s_draw
-}
-
-
-#' @export
-draw_theta_cpp_test_R <-  function(h, h0, prior, theta_old, T_){
-  unlist(draw_theta_cpp_test( h0,  h,
-                  mu = theta_old["mu"],  phi = theta_old["phi"], sigma = sqrt(theta_old["sigma2"]),
-                  Bsigma = prior[["B_sigma"]], a0= prior[["alpha_0"]],  b0= prior[["beta_0"]],
-                  bmu= prior[["b_mu"]],  Bmu= prior[["B_mu"]],
-                  B011inv= 1/prior[["B_0"]][1,1],  B022inv= 1/prior[["B_0"]][2,2])
-  )
-}
-
-#' @export
-draw_theta_cpp_R <-  function(h, h0, prior, theta_old, T_){
-  unlist(draw_theta_cpp( h0,  h,
-                              mu = theta_old["mu"],  phi = theta_old["phi"], sigma = sqrt(theta_old["sigma2"]),
-                              Bsigma = prior[["B_sigma"]], a0= prior[["alpha_0"]],  b0= prior[["beta_0"]],
-                              bmu= prior[["b_mu"]],  Bmu= prior[["B_mu"]],
-                              B011inv= 1/prior[["B_0"]][1,1],  B022inv= 1/prior[["B_0"]][2,2])
-  )
 }
 

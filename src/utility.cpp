@@ -45,17 +45,17 @@ double logacceptrateGamma(double xnew, double xold, double Bsigma) {
   return (xold-xnew)/(2*Bsigma);
 }
 
-
+//' @export
 //[[Rcpp::export]]
 double invGamme_cpp(double cT, double CT){
   return(1/Rcpp::as<double>(Rcpp::rgamma(1, cT, 1/CT)));
 }
-
+//' @export
 //[[Rcpp::export]]
 Eigen::MatrixXd inv_Eigen(Eigen::Map<Eigen::MatrixXd> M){
   return M.inverse();
 }
-
+//' @export
 //[[Rcpp::export]]
 Eigen::MatrixXd chol_Eigen(Eigen::Map<Eigen::MatrixXd> M){
   Eigen::LLT<Eigen::MatrixXd> lltOfA(M);
