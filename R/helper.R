@@ -12,8 +12,13 @@ create_sv <- function(spec_grid, T_ = 1000){
   d            <- c(mu_h, rep(mu_h * (1-phi), T_-1))
   h_true       <- as.numeric(solve(H_phi, d + u))
   epsilon      <- rnorm(T_)
+  if(kappa !=0){
   q            <- rbinom(T_, 1, kappa)
   k            <- rnorm(T_, -0.5 * delta^2, delta)
+  } else{
+    q <- 0
+    k <- 0
+  }
   y            <- mu_y + exp(0.5*h_true)*epsilon + q * k
   list(y = y, h = h_true, q = q, k = k, para = c("phi" = phi, "mu_h" = mu_h, "sigma2_u" = sigma2_u, "kappa" = kappa, "delta" = delta ))
 }
