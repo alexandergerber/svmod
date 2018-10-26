@@ -20,7 +20,7 @@ create_sv <- function(spec_grid, T_ = 1000){
     k <- 0
   }
   y            <- mu_y + exp(0.5*h_true)*epsilon + q * k
-  list(y = y, h = h_true, q = q, k = k, para = c("phi" = phi, "mu_h" = mu_h, "sigma2_u" = sigma2_u, "kappa" = kappa, "delta" = delta ))
+  list(y = y, h = h_true, q = q, k = k, para = c(phi, mu_h, sigma2_u, kappa, delta ))
 }
 
 # Draw Normal using Precision Matrix --------------------------------------
