@@ -11,7 +11,7 @@ create_sv <- function(spec_grid, X, T_ = 1000){
   u            <- rnorm(T_, sd = c(0 ,rep(sqrt(sigma2_u), T_ -1)  ) )
   H_phi        <- lag_Matrix(T_, lags = -phi)
   d            <- c(mu_h, rep(mu_h * (1-phi), T_-1))
-  h_true       <- as.numeric(solve(H_phi, X %*% beta + d + u))
+  h_true       <- as.numeric(solve(H_phi,  spec_grid[["X"]] %*% beta + d + u))
   epsilon      <- rnorm(T_)
   if(kappa !=0){
   q            <- rbinom(T_, 1, kappa)
@@ -21,7 +21,7 @@ create_sv <- function(spec_grid, X, T_ = 1000){
     k <- 0
   }
   y            <- mu_y + exp(0.5*h_true)*epsilon + q * k
-  list(y = y, h = h_true, q = q, X = X, k = k, para = c(phi = phi, beta = beta, mu_h = mu_h, sigma2_u = sigma2_u, kappa = kappa, delta = delta))
+  list(y = y, h = h_true, q = q, X =  spec_grid[["X"]], k = k, para = c(phi = phi, beta = beta, mu_h = mu_h, sigma2_u = sigma2_u, kappa = kappa, delta = delta))
 }
 
 # Draw Normal using Precision Matrix --------------------------------------
@@ -65,4 +65,6 @@ logacceptrateGamma <- function(xnew, xold, Bsigma){
   (xold-xnew)/(2*Bsigma)
 }
 
-
+.onUnload <- function (libpath) {
+  library.dynam.unload("svmod", libpath)
+}
