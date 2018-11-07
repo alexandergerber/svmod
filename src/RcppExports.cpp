@@ -78,6 +78,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// draw_hX_cpp
+Rcpp::List draw_hX_cpp(const Eigen::Map<Eigen::VectorXd> y, const Eigen::Map<Eigen::VectorXi> s, const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> beta, const double phi, const double sigma2, const double mu);
+RcppExport SEXP _svmod_draw_hX_cpp(SEXP ySEXP, SEXP sSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP phiSEXP, SEXP sigma2SEXP, SEXP muSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXi> >::type s(sSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< const double >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< const double >::type sigma2(sigma2SEXP);
+    Rcpp::traits::input_parameter< const double >::type mu(muSEXP);
+    rcpp_result_gen = Rcpp::wrap(draw_hX_cpp(y, s, X, beta, phi, sigma2, mu));
+    return rcpp_result_gen;
+END_RCPP
+}
 // invGamme_cpp
 double invGamme_cpp(double cT, double CT);
 RcppExport SEXP _svmod_invGamme_cpp(SEXP cTSEXP, SEXP CTSEXP) {
@@ -112,15 +129,42 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// eigen_mat_mult1
+SEXP eigen_mat_mult1(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
+RcppExport SEXP _svmod_eigen_mat_mult1(SEXP ASEXP, SEXP XSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
+    rcpp_result_gen = Rcpp::wrap(eigen_mat_mult1(A, X));
+    return rcpp_result_gen;
+END_RCPP
+}
+// eigen_mat_mult2
+Eigen::MatrixXd eigen_mat_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
+RcppExport SEXP _svmod_eigen_mat_mult2(SEXP ASEXP, SEXP XSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
+    rcpp_result_gen = Rcpp::wrap(eigen_mat_mult2(A, X));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_svmod_draw_s_cpp", (DL_FUNC) &_svmod_draw_s_cpp, 2},
     {"_svmod_draw_h_cpp", (DL_FUNC) &_svmod_draw_h_cpp, 5},
     {"_svmod_draw_theta_cpp", (DL_FUNC) &_svmod_draw_theta_cpp, 12},
     {"_svmod_draw_theta_cpp_test", (DL_FUNC) &_svmod_draw_theta_cpp_test, 12},
+    {"_svmod_draw_hX_cpp", (DL_FUNC) &_svmod_draw_hX_cpp, 7},
     {"_svmod_invGamme_cpp", (DL_FUNC) &_svmod_invGamme_cpp, 2},
     {"_svmod_inv_Eigen", (DL_FUNC) &_svmod_inv_Eigen, 1},
     {"_svmod_chol_Eigen", (DL_FUNC) &_svmod_chol_Eigen, 1},
+    {"_svmod_eigen_mat_mult1", (DL_FUNC) &_svmod_eigen_mat_mult1, 2},
+    {"_svmod_eigen_mat_mult2", (DL_FUNC) &_svmod_eigen_mat_mult2, 2},
     {NULL, NULL, 0}
 };
 

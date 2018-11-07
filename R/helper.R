@@ -1,16 +1,17 @@
 # Simulate SV Process -----------------------------------------------------
 #' @export
-create_sv <- function(spec_grid, T_ = 1000){
-  phi <- spec_grid["phi"]
-  mu_h <- spec_grid["mu_h"]
-  mu_y <- spec_grid["mu_y"]
-  kappa <- spec_grid["kappa"]
-  sigma2_u <- spec_grid["sigma2_u"]
-  delta <- spec_grid["delta"]
+create_sv <- function(spec_grid, X, T_ = 1000){
+  phi <- spec_grid[["phi"]]
+  mu_h <- spec_grid[["mu_h"]]
+  mu_y <- spec_grid[["mu_y"]]
+  kappa <- spec_grid[["kappa"]]
+  sigma2_u <- spec_grid[["sigma2_u"]]
+  delta <- spec_grid[["delta"]]
+  beta <- spec_grid[["beta"]]
   u            <- rnorm(T_, sd = c(0 ,rep(sqrt(sigma2_u), T_ -1)  ) )
   H_phi        <- lag_Matrix(T_, lags = -phi)
   d            <- c(mu_h, rep(mu_h * (1-phi), T_-1))
-  h_true       <- as.numeric(solve(H_phi, d + u))
+  h_true       <- as.numeric(solve(H_phi, X %*% beta + d + u))
   epsilon      <- rnorm(T_)
   if(kappa !=0){
   q            <- rbinom(T_, 1, kappa)
@@ -20,7 +21,7 @@ create_sv <- function(spec_grid, T_ = 1000){
     k <- 0
   }
   y            <- mu_y + exp(0.5*h_true)*epsilon + q * k
-  list(y = y, h = h_true, q = q, k = k, para = c(phi, mu_h, sigma2_u, kappa, delta ))
+  list(y = y, h = h_true, q = q, X = X, k = k, para = c(phi = phi, beta = beta, mu_h = mu_h, sigma2_u = sigma2_u, kappa = kappa, delta = delta))
 }
 
 # Draw Normal using Precision Matrix --------------------------------------

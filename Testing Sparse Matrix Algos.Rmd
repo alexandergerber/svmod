@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+author: "Alexander Gerber"
+date: "7 November 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(svmod)
+library(microbenchmark)
+library(ggplot2)
+```
+
+## normal Matrix multiplication
+```{r}
+A <- matrix(rnorm(10000), ncol = 1000, nrow = 100)
+B <- matrix(rnorm(10000), ncol = 100, nrow = 1000)
+a <- svmod::eigen_mat_mult1(A, B)
+system.time(
+b <-  A %*% B
+)
+system.time(
+b1 <- eigen_mat_mult1(A, B)
+)
+
+
+a[1:10]
+b[1:10]
+b1 <- microbenchmark(
+  "base R" =  A %*% B,
+  "Eigen1" = svmod::eigen_mat_mult1(A, B),
+  "Eigen2" = svmod::eigen_mat_mult2(A, B)
+)
+
+autoplot(b1)
+```
+
