@@ -76,16 +76,4 @@ Eigen::MatrixXd eigen_mat_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen:
   return(A * X);
 }
 
-//' @export
-//[[Rcpp::export]]
-Eigen::Diagonal eigen_mat_mult3(int T, double sigma2, double phi){
-  Eigen::Diagonal<double, T> P;
-  P.diagonal(0) = (1-phi)/sigma2;
-   for(i = 1, i > T + 1, i++){
-    P.diagonal(i) ) = 1/sigma2
-  }
- return(P);
-}
-
-
 
