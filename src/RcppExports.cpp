@@ -129,27 +129,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// eigen_mat_mult1
-SEXP eigen_mat_mult1(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
-RcppExport SEXP _svmod_eigen_mat_mult1(SEXP ASEXP, SEXP XSEXP) {
+// eigen_mult1
+SEXP eigen_mult1(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
+RcppExport SEXP _svmod_eigen_mult1(SEXP ASEXP, SEXP XSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type A(ASEXP);
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
-    rcpp_result_gen = Rcpp::wrap(eigen_mat_mult1(A, X));
+    rcpp_result_gen = Rcpp::wrap(eigen_mult1(A, X));
     return rcpp_result_gen;
 END_RCPP
 }
-// eigen_mat_mult2
-Eigen::MatrixXd eigen_mat_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
-RcppExport SEXP _svmod_eigen_mat_mult2(SEXP ASEXP, SEXP XSEXP) {
+// eigen_mult2
+Eigen::MatrixXd eigen_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
+RcppExport SEXP _svmod_eigen_mult2(SEXP ASEXP, SEXP XSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type A(ASEXP);
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
-    rcpp_result_gen = Rcpp::wrap(eigen_mat_mult2(A, X));
+    rcpp_result_gen = Rcpp::wrap(eigen_mult2(A, X));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -163,8 +163,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_svmod_invGamme_cpp", (DL_FUNC) &_svmod_invGamme_cpp, 2},
     {"_svmod_inv_Eigen", (DL_FUNC) &_svmod_inv_Eigen, 1},
     {"_svmod_chol_Eigen", (DL_FUNC) &_svmod_chol_Eigen, 1},
-    {"_svmod_eigen_mat_mult1", (DL_FUNC) &_svmod_eigen_mat_mult1, 2},
-    {"_svmod_eigen_mat_mult2", (DL_FUNC) &_svmod_eigen_mat_mult2, 2},
+    {"_svmod_eigen_mult1", (DL_FUNC) &_svmod_eigen_mult1, 2},
+    {"_svmod_eigen_mult2", (DL_FUNC) &_svmod_eigen_mult2, 2},
     {NULL, NULL, 0}
 };
 

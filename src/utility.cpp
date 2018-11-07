@@ -65,15 +65,18 @@ Eigen::MatrixXd chol_Eigen(Eigen::Map<Eigen::MatrixXd> M){
 
 //' @export
 //[[Rcpp::export]]
-SEXP eigen_mat_mult1(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
+SEXP eigen_mult1(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
   return(Rcpp::wrap(A * X));
-
 }
 
 //' @export
 //[[Rcpp::export]]
-Eigen::MatrixXd eigen_mat_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
+Eigen::MatrixXd eigen_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
   return(A * X);
 }
+
+
+
+
 
 

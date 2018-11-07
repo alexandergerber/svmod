@@ -41,12 +41,12 @@ chol_Eigen <- function(M) {
 }
 
 #' @export
-eigen_mat_mult1 <- function(A, X) {
-    .Call('_svmod_eigen_mat_mult1', PACKAGE = 'svmod', A, X)
+eigen_mult1 <- function(A, X) {
+    .Call('_svmod_eigen_mult1', PACKAGE = 'svmod', A, X)
 }
 
 #' @export
-eigen_mat_mult2 <- function(A, X) {
-    .Call('_svmod_eigen_mat_mult2', PACKAGE = 'svmod', A, X)
+eigen_mult2 <- function(A, X) {
+    .Call('_svmod_eigen_mult2', PACKAGE = 'svmod', A, X)
 }
 
