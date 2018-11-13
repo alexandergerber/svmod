@@ -1,8 +1,6 @@
-#include "utility.h"
-#include <RcppEigen.h>
 // [[Rcpp::depends(RcppEigen)]]
-using Eigen::Map;
-using Eigen::MatrixXd;
+#include "utility.h"
+
 // Cholesky factor for a tridiagonal matrix with constant off-diagonal
 void cholTridiag(const Rcpp::NumericVector & omega_diag, double omega_offdiag, double * chol_diag, double * chol_offdiag)
 {
@@ -63,17 +61,64 @@ Eigen::MatrixXd chol_Eigen(Eigen::Map<Eigen::MatrixXd> M){
   return L;
 }
 
+
 //' @export
 //[[Rcpp::export]]
-SEXP eigen_mult1(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
-  return(Rcpp::wrap(A * X));
+Eigen::MatrixXd eigen_mult(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
+  return(A * X);
+}
+
+
+Eigen::SparseMatrix<double> lag_matrix(int n, double phi){
+  typedef Eigen::Triplet<double> T;
+  // Create H_phi
+  std::vector<T> tripletList_H;
+  tripletList_H.reserve(n + n -1);
+  for(int i; i < n; i++)
+  {
+    tripletList_H.push_back(T(i,i,1));
+    if(i < n-1){
+      tripletList_H.push_back(T(i+1, i, -phi));
+    }
+  }
+  Eigen::SparseMatrix<double> H(n,n);
+  H.setFromTriplets(tripletList_H.begin(), tripletList_H.end());
+  return(H);
 }
 
 //' @export
 //[[Rcpp::export]]
-Eigen::MatrixXd eigen_mult2(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X){
-  return(A * X);
+Eigen::SparseMatrix<double> diagonal(Rcpp::NumericVector x){
+  typedef Eigen::Triplet<double> T;
+  // Create H_phi
+  std::vector<T> tripletList;
+  tripletList.reserve(x.size());
+  for(int i; i < x.size(); i++)
+  {
+    tripletList.push_back(T(i,i,x(i)));
+  }
+  Eigen::SparseMatrix<double> D(x.size(),x.size());
+  D.setFromTriplets(tripletList.begin(), tripletList.end());
+  return(D);
 }
+
+//' @export
+//[[Rcpp::export]]
+Eigen::VectorXd  solve_tri (Eigen::SparseMatrix<double> A, Eigen::VectorXd b){
+  Eigen::VectorXd x = A.triangularView<Eigen::Lower>().solve(b);
+  return(x);
+}
+
+//' @export
+//[[Rcpp::export]]
+Rcpp::List chol_sparse (Eigen::Map<Eigen::SparseMatrix<double> > A){
+  Eigen::SimplicialLLT <Eigen::SparseMatrix<double> > cholesky;
+   cholesky.analyzePattern(A);
+   cholesky.factorize(A);
+  return Rcpp::List::create(Rcpp::Named("A") = A,
+                            Rcpp::Named("L") = cholesky.matrixL());
+}
+
 
 
 

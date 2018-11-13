@@ -1,5 +1,6 @@
 #pragma once
 #include <RcppArmadillo.h>
+#include <RcppEigen.h>
 
 // Cholesky factor for a tridiagonal matrix with constant off-diagonal
 void cholTridiag(const Rcpp::NumericVector & omega_diag, double omega_offdiag,
@@ -19,3 +20,7 @@ double logdbeta(double x, double a, double b);
 double logacceptrateGamma(double xnew, double xold, double Bsigma);
 double invGamme_cpp(double cT, double CT);
 
+Eigen::SparseMatrix<double> diagonal(Rcpp::NumericVector x);
+Eigen::SparseMatrix<double> lag_matrix(int n, double phi);
+Eigen::VectorXd  solve_tri (Eigen::SparseMatrix<double> A, Eigen::VectorXd b);
+Rcpp::List chol_sparse (Eigen::Map<Eigen::SparseMatrix<double> > A);

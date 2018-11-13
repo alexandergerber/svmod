@@ -1,7 +1,7 @@
 // Functions related to sampling the indicators
 // Constants relating to the approximation of log(chisq) through
 // normal mixture (Omori et al., 2007) can be found in auxmix.h
-
+#include <RcppArmadillo.h>
 #include "auxmix.h"
 
 // Combines findMixprobs() and colCumsums() (see above) into one function

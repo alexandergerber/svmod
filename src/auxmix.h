@@ -1,5 +1,5 @@
 #pragma once
-#include <RcppArmadillo.h>
+
 
 // Some constants relating to the approximation of log(chisq) trough
 // normal mixture (from Omori et al., 2007), and
@@ -11,9 +11,7 @@ void findMixCDF(double * mixprob, const Rcpp::NumericVector datanorm);
 void invTransformSampling(const double * const, int * r, int T);
 
 const double mix_prob[10] = {.00609, .04775, .13057, .20674, .22715, .18842, .12047, .05591, .01575, .00115};
-
 const double mix_mean[10] = {1.92677, 1.34744, .73504, .02266, -.85173, -1.97278, -3.46788, -5.55246, -8.68384, -14.65000};
-
 const double mix_var[10] = {.11265, .17788, .26768, .40611, .62699, .98583, 1.57469, 2.54498, 4.16591, 7.33342};
 
 const double mix_varinv[10] = {

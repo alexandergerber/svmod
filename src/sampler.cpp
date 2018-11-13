@@ -3,6 +3,7 @@
 #include "sampler.h"
 #include "utility.h"
 using namespace Rcpp;
+
 //' @export
 //[[Rcpp::export]]
 Rcpp::IntegerVector draw_s_cpp(Rcpp::NumericVector y, Rcpp::NumericVector h) {
@@ -43,16 +44,29 @@ Rcpp::NumericVector draw_h_cpp(Rcpp::NumericVector y, Rcpp::IntegerVector s, dou
   + mu*(1-phi)*sigma2inv;
   omega_offdiag = -phi*sigma2inv;
 
+
+  // for debuggig
+  // Rcpp::Rcout << "Vector c after init" << std::endl;
+  // Rcpp::Rcout << covector << std::endl;
+
+
   // Cholesky decomposition
   cholTridiag(omega_diag, omega_offdiag, &chol_diag(0), &chol_offdiag(0));
 
   // Solution of Chol*x = covector ("forward algorithm")
   forwardAlg(chol_diag, chol_offdiag, covector, &htmp(0));
 
-  htmp = htmp + rnorm(T+1);
+  // Rcpp::Rcout << "Vector a" << std::endl;
+  // Rcpp::Rcout << htmp << std::endl;
 
+  htmp = htmp + Rcpp::rnorm(T+1,0,1);
+  // Rcpp::Rcout << "Vector a + eps  " << std::endl;
+  // Rcpp::Rcout << htmp << std::endl;
   // Solution of (Chol')*x = htmp ("backward algorithm")
   backwardAlg(chol_diag, chol_offdiag, htmp, &hnew(0));
+
+  // Rcpp::Rcout << "Vector h" << std::endl;
+  // Rcpp::Rcout << hnew << std::endl;
 
   return hnew;
 }

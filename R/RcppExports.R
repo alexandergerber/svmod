@@ -26,6 +26,11 @@ draw_hX_cpp <- function(y, s, X, beta, phi, sigma2, mu) {
 }
 
 #' @export
+test_LAPACK <- function(s, y, phi, sigma2, mu) {
+    .Call('_svmod_test_LAPACK', PACKAGE = 'svmod', s, y, phi, sigma2, mu)
+}
+
+#' @export
 invGamme_cpp <- function(cT, CT) {
     .Call('_svmod_invGamme_cpp', PACKAGE = 'svmod', cT, CT)
 }
@@ -41,12 +46,22 @@ chol_Eigen <- function(M) {
 }
 
 #' @export
-eigen_mult1 <- function(A, X) {
-    .Call('_svmod_eigen_mult1', PACKAGE = 'svmod', A, X)
+eigen_mult <- function(A, X) {
+    .Call('_svmod_eigen_mult', PACKAGE = 'svmod', A, X)
 }
 
 #' @export
-eigen_mult2 <- function(A, X) {
-    .Call('_svmod_eigen_mult2', PACKAGE = 'svmod', A, X)
+diagonal <- function(x) {
+    .Call('_svmod_diagonal', PACKAGE = 'svmod', x)
+}
+
+#' @export
+solve_tri <- function(A, b) {
+    .Call('_svmod_solve_tri', PACKAGE = 'svmod', A, b)
+}
+
+#' @export
+chol_sparse <- function(A) {
+    .Call('_svmod_chol_sparse', PACKAGE = 'svmod', A)
 }
 

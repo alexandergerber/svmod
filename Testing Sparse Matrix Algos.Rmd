@@ -3,6 +3,8 @@ title: "Untitled"
 author: "Alexander Gerber"
 date: "7 November 2018"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -12,32 +14,95 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(svmod)
 library(microbenchmark)
-library(ggplot2)
+
 ```
 
 ## normal Matrix multiplication
 ```{r}
 A <- matrix(rnorm(1000000), ncol = 1000, nrow = 1000)
 B <- matrix(rnorm(1000000), ncol = 1000, nrow = 1000)
-a <- svmod::eigen_mat_mult1(A, B)
-system.time(
-b <-  A %*% B
-)
-system.time(
-b1 <- eigen_mat_mult1(A, B)
-)
-system.time(
-b2 <- eigen_mat_mult2(A, B)
-)
 
-a[1:10]
-b[1:10]
 b1 <- microbenchmark(
   "base R" =  A %*% B,
-  "Eigen1" = svmod::eigen_mat_mult1(A, B),
-  "Eigen2" = svmod::eigen_mat_mult2(A, B)
+  "Eigen2" = svmod::eigen_mult(A, B),
+  times = 10
 )
 
-autoplot(b1)
+
+svmod::Omega(10, 0.1)
+
+```
+
+```{r}
+y <- rnorm(10)
+s <- sample(1:9, replace = TRUE, size = 10)
+X <- runif(10)
+beta <- 0.4
+phi <- 0.9
+sigma2 <- 0.1
+mu <- -5
+a <- svmod::draw_hX_cpp(y = y, s = s, X = X, beta = beta, phi = phi, sigma2 = sigma2, mu = mu)
+a$gamma
+a$lag_matrix
+a$P_u
+a$P_h
+a$lag_matrix
+a$c
+a$a
+a$P
+library(Matrix)
+library(microbenchmark)
+library(svmod)
+X <- svmod::lag_Matrix(5, -0.9)
+X <- as(X, "dgCMatrix")
+XX <- X %*% t(X) 
+c <- c(2.1, 4.0, 2.4, 6.9, 7.1)
+epsilon <- c(-1.4574318, -0.1941555,  1.9767620,  1.1025881, -0.5950287)
+C1<- t(chol(XX))
+
+d <- solve(C1 , c)
+solve(t(C1), d + epsilon)
+
+
+C2 <-svmod::chol_sparse(XX)
+
+C1 %*% t(C1)
+C2  %*% t(C2)
+
+system.time(svmod::solve_tri(X, b))
+system.time(Matrix::solve(X, b))
+
+microbenchmark(
+svmod::solve_tri(X, b),
+Matrix::solve(X, b)
+)
+showMethods("solve")
+```
+
+```{r}
+library(svmod)
+T_ <- 10000
+spec_grid <- list(phi = 0.9, mu_h = -8, mu_y = 0, kappa = 0, sigma2_u = 0.3, delta = 0, beta = 0, X = as.matrix(rep(0, T_), ncol = 1))
+dgp <- svmod::create_sv(spec_grid, T_ = T_)
+
+s <- svmod::draw_s_cpp(dgp$y, dgp$h)
+
+set.seed(1)
+a <- svmod::draw_h_cpp(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8)
+#
+set.seed(1)
+b <- svmod::test_LAPACK(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8)
+
+# plot(a)
+# points(b)
+# lines(dgp$h)
+
+a1 <- microbenchmark::microbenchmark(
+  "cpp" =  svmod::draw_h_cpp(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8),
+  "lapack" = svmod::test_LAPACK(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8),
+  times = 100
+)
+a1
+
 ```
 
