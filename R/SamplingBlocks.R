@@ -3,7 +3,7 @@ draw_q <- function(y, h, zeta, kappa){
   p1 <- kappa * dnorm(y, exp(zeta) - 1, sqrt(exp(h)))
   p0 <- (1 - kappa) * dnorm(y, 0, sqrt(exp(h)))
   q <- rbinom(length(y), 1, p1 / (p1 + p0))
-  q
+  ifelse(is.na(q), 0, q)
 }
 
 #' @export
