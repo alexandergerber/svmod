@@ -11,4 +11,4 @@ Encoding: UTF-8
 LazyData: true
 Imports: Rcpp (>= 0.12.17), RcppArmadillo, RcppEigen, Matrix
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen, Matrix
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1

@@ -18,91 +18,290 @@ library(microbenchmark)
 ```
 
 ## normal Matrix multiplication
-```{r}
-A <- matrix(rnorm(1000000), ncol = 1000, nrow = 1000)
-B <- matrix(rnorm(1000000), ncol = 1000, nrow = 1000)
-
-b1 <- microbenchmark(
-  "base R" =  A %*% B,
-  "Eigen2" = svmod::eigen_mult(A, B),
-  times = 10
-)
-
-
-svmod::Omega(10, 0.1)
-
-```
-
-```{r}
-y <- rnorm(10)
-s <- sample(1:9, replace = TRUE, size = 10)
-X <- runif(10)
-beta <- 0.4
-phi <- 0.9
-sigma2 <- 0.1
-mu <- -5
-a <- svmod::draw_hX_cpp(y = y, s = s, X = X, beta = beta, phi = phi, sigma2 = sigma2, mu = mu)
-a$gamma
-a$lag_matrix
-a$P_u
-a$P_h
-a$lag_matrix
-a$c
-a$a
-a$P
-library(Matrix)
-library(microbenchmark)
-library(svmod)
-X <- svmod::lag_Matrix(5, -0.9)
-X <- as(X, "dgCMatrix")
-XX <- X %*% t(X) 
-c <- c(2.1, 4.0, 2.4, 6.9, 7.1)
-epsilon <- c(-1.4574318, -0.1941555,  1.9767620,  1.1025881, -0.5950287)
-C1<- t(chol(XX))
-
-d <- solve(C1 , c)
-solve(t(C1), d + epsilon)
-
-
-C2 <-svmod::chol_sparse(XX)
-
-C1 %*% t(C1)
-C2  %*% t(C2)
-
-system.time(svmod::solve_tri(X, b))
-system.time(Matrix::solve(X, b))
-
-microbenchmark(
-svmod::solve_tri(X, b),
-Matrix::solve(X, b)
-)
-showMethods("solve")
-```
 
 ```{r}
 library(svmod)
-T_ <- 10000
-spec_grid <- list(phi = 0.9, mu_h = -8, mu_y = 0, kappa = 0, sigma2_u = 0.3, delta = 0, beta = 0, X = as.matrix(rep(0, T_), ncol = 1))
+T_ <- 2000000
+#set.seed(1)
+phi = 0.9
+mu_h = -8
+mu_y = 0
+kappa = 0.03
+sigma2_u = 0.2
+delta = 0.1
+X = as.matrix(rnorm(T_))
+beta = as.vector(c(0.4))
+spec_grid <- list(phi = phi, mu_h = mu_h, mu_y = mu_y, kappa = kappa, sigma2_u = sigma2_u, delta = delta,  X = X, beta = beta)
+set.seed(1)
 dgp <- svmod::create_sv(spec_grid, T_ = T_)
 
-s <- svmod::draw_s_cpp(dgp$y, dgp$h)
+lm(dgp$h[-1] ~ X[-1] + dgp$h[-T_])
+
+X_app <- rbind(0, X)
 
 set.seed(1)
-a <- svmod::draw_h_cpp(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8)
-#
+system.time(
+a <- svmod::SVJX(y = dgp$y, 1000, X = X_app,  verbose = TRUE, print_every = 1, keep_all = FALSE  )  
+)# 100 - 13.934; 1,000 - 28,865; 10,000 - 194.647; 100,000 - 1818.857; 
 set.seed(1)
-b <- svmod::test_LAPACK(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8)
+system.time(b <- svmod::SVJX(y = dgp$y, 10000, X = X_app,  verbose = TRUE, print_every = 1000, keep_all = TRUE ))    # 100 - 14,750; 1,000 - 34,111; 10,000 - 270.872 
 
-# plot(a)
-# points(b)
-# lines(dgp$h)
+plot(a$h, type = "l")
+lines(b$h[nrow(b$h), ], col = "red")
+lines(dgp$h, col = "steelblue")
+```
 
-a1 <- microbenchmark::microbenchmark(
-  "cpp" =  svmod::draw_h_cpp(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8),
-  "lapack" = svmod::test_LAPACK(y = dgp$y, s = s, phi = 0.9, sigma2 = 0.3, mu = -8),
-  times = 100
-)
-a1
+
+
+```{r}
+y <- dgp$y
+X <- X_app
+draws <- 160
+post <- (draws/2+1):draws
+verbose <- TRUE
+print_every <- 1
+init <- list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4, "beta" = 0,
+                            "h" = -9.7, "h0" = -9,   # h could be a vector
+                            "q" = 0, "zeta" = 0.05,
+                            "kappa" = 0.1, "delta" = 0.1
+                )
+ prior <- list("b_mu" = 0, "B_mu" = 100,
+                             "alpha_0" = 5, "beta_0" = 1.5,
+                             "B_sigma" = 1,
+                             "B_0" = cbind(c(1e12,0, 0), c(0,1e8, 0), c(0,0,1e8)),
+                             "mu_delta" = 0.01, "B_delta" = 1,
+                             "kappa_alpha" = 2, "kappa_beta" = 100
+                )
+ 
+  T_ <- length(y)
+  # Storage
+  s_draws     <- matrix(nrow = draws, ncol = T_)
+  h_draws     <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
+  q_draws     <- matrix(nrow = draws, ncol = T_)
+  zeta_draws  <- matrix(nrow = draws, ncol = T_)
+  theta_draws <- matrix(nrow = draws, ncol = 4,
+                        dimnames = list(NULL, c("mu", "phi", "sigma2", "beta"))
+  )
+  kappa_draws <- numeric(draws)
+  delta_draws <- numeric(draws)
+  # Define initial values
+  theta_draws[1, ] <-  c("mu"     = init[["mu"]],
+                         "phi"    = init[["phi"]],
+                         "sigma2" = init[["sigma2"]],
+                         "beta" = init[["beta"]])
+  h_draws[1, ]     <- init[["h"]]
+  q_draws[1, ]     <- init[["q"]]
+  zeta_draws[1, ]  <- init[["zeta"]]
+  kappa_draws[1]   <- init[["kappa"]]
+  delta_draws[1]   <- init[["delta"]]
+  # MCMC
+  for(i in 2:draws){
+    if(verbose == TRUE) if(i%%print_every == 0) print(i)
+    s_draws[i, ] <- draw_s(y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), h = h_draws[i-1, -1])
+    h_draws[i, ] <- draw_hX(mu = theta_draws[i-1, "mu"], beta = as.vector(theta_draws[i-1, "beta"]),
+                               phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
+                               y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), s = s_draws[i, ], X = as.matrix(X))
+    theta_draws[i, ] <- draw_thetaX(h = h_draws[i, -1], h0 =  h_draws[i, 1],
+                                    prior = prior, theta_old = theta_draws[i-1, ], T_, X = X[-1, ])
+    zeta_draws[i, ] <- draw_zeta(y = y, h = h_draws[i, -1], q = q_draws[i-1, ], delta = delta_draws[i-1])
+    q_draws[i, ]    <- draw_q(y = y, h = h_draws[i, -1], zeta = zeta_draws[i, ], kappa = kappa_draws[i-1])
+    kappa_draws[i]  <- draw_kappa(q = q_draws[i, ], prior = prior)
+    delta_draws[i]  <- draw_delta(y = y, h = h_draws[i, -1], q = q_draws[i, ], prior = prior, delta_old = delta_draws[i-1])
+  }
+  
+  invisible(list("s" = s_draws[post, ], "h" =  h_draws[post, -1], "h0" =  h_draws[post, 1], "theta" = theta_draws[post, ],
+                 "zeta" = zeta_draws[post, ], "q" = q_draws[post, ], "kappa" = kappa_draws[post], "delta" = delta_draws[post]))
+
+
 
 ```
+
+```{r}
+y <- dgp$y
+X <- X_app
+draws <- 160
+post <- (draws/2+1):draws
+verbose <- TRUE
+print_every <- 1
+init <- list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4, "beta" = 0,
+                            "h" = -9.7, "h0" = -9,   # h could be a vector
+                            "q" = 0, "zeta" = 0.05,
+                            "kappa" = 0.1, "delta" = 0.1
+                )
+ prior <- list("b_mu" = 0, "B_mu" = 100,
+                             "alpha_0" = 5, "beta_0" = 1.5,
+                             "B_sigma" = 1,
+                             "B_0" = cbind(c(1e12,0, 0), c(0,1e8, 0), c(0,0,1e8)),
+                             "mu_delta" = 0.01, "B_delta" = 1,
+                             "kappa_alpha" = 2, "kappa_beta" = 100
+                )
+ 
+  T_ <- length(y)
+  # Storage
+  s_draws     <- matrix(nrow = 1, ncol = T_)
+  h_draws     <- matrix(nrow = 1, ncol = T_ + 1) # if h and h0 are sampled jointly
+  q_draws     <- matrix(nrow = 1, ncol = T_)
+  zeta_draws  <- matrix(nrow = 1, ncol = T_)
+  theta_draws <- matrix(nrow = draws, ncol = 4,
+                        dimnames = list(NULL, c("mu", "phi", "sigma2", "beta"))
+  )
+  kappa_draws <- numeric(draws)
+  delta_draws <- numeric(draws)
+  # Define initial values
+  theta_draws[1, ] <-  c("mu"     = init[["mu"]],
+                         "phi"    = init[["phi"]],
+                         "sigma2" = init[["sigma2"]],
+                         "beta" = init[["beta"]])
+  h_draws[1, ]     <- init[["h"]]
+  q_draws[1, ]     <- init[["q"]]
+  zeta_draws[1, ]  <- init[["zeta"]]
+  kappa_draws[1]   <- init[["kappa"]]
+  delta_draws[1]   <- init[["delta"]]
+  # MCMC
+  for(i in 2:draws){
+    if(verbose == TRUE) if(i%%print_every == 0) print(i)
+    s_draws[1, ] <- draw_s(y = y - q_draws[1, ] * (exp(zeta_draws[1, ]) - 1), h = h_draws[1, -1])
+    h_draws[1, ] <- draw_hX(mu = theta_draws[i-1, "mu"], beta = as.vector(theta_draws[i-1, "beta"]),
+                               phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
+                               y = y - q_draws[1, ] * (exp(zeta_draws[1, ]) - 1), s = s_draws[1, ], X = as.matrix(X))
+    theta_draws[i, ] <- draw_thetaX(h = h_draws[1, -1], h0 =  h_draws[1, 1],
+                                    prior = prior, theta_old = theta_draws[i-1, ], T_, X = X[-1, ])
+    zeta_draws[1, ] <- draw_zeta(y = y, h = h_draws[1, -1], q = q_draws[1, ], delta = delta_draws[i-1])
+    q_draws[1, ]    <- draw_q(y = y, h = h_draws[1, -1], zeta = zeta_draws[1, ], kappa = kappa_draws[i-1])
+    kappa_draws[i]  <- draw_kappa(q = q_draws[1, ], prior = prior)
+    delta_draws[i]  <- draw_delta(y = y, h = h_draws[1, -1], q = q_draws[1, ], prior = prior, delta_old = delta_draws[i-1])
+  }
+  
+```
+
+
+
+
+```{r}
+    s_draws     <- numeric(length = T_)
+    h_draws     <- numeric(length = T_ + 1) # if h and h0 are sampled jointly
+    q_draws     <- numeric(length = T_)
+    zeta_draws  <- numeric(length = T_)
+
+    h_draws     <- init[["h"]]
+    q_draws     <- init[["q"]]
+    zeta_draws  <- init[["zeta"]]
+
+    # MCMC
+    for(i in 2:draws){
+      set.seed(1)
+      if(verbose == TRUE) if(i%%print_every == 0) print(i)
+      s_draws <- draw_s(y = y - q_draws * (exp(zeta_draws) - 1), h = h_draws[-1])
+      h_draws <- draw_hX(mu = theta_draws[i-1, "mu"], beta = as.vector(theta_draws[i-1, "beta"]),
+                              phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
+                              y = y - q_draws * (exp(zeta_draws) - 1), s = s_draws, X = as.matrix(X))
+      theta_draws[i, ] <- draw_thetaX(h = h_draws[-1], h0 =  h_draws[1],
+                                      prior = prior, theta_old = theta_draws[i-1, ], T_, X = X[-1, ])
+      zeta_draws      <- draw_zeta(y = y, h = h_draws[-1], q = q_draws, delta = delta_draws[i-1])
+      q_draws         <- draw_q(y = y, h = h_draws[-1], zeta = zeta_draws, kappa = kappa_draws[i-1])
+      kappa_draws[i]  <- draw_kappa(q = q_draws, prior = prior)
+      delta_draws[i]  <- draw_delta(y = y, h = h_draws[-1], q = q_draws, prior = prior, delta_old = delta_draws[i-1])
+    }
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+library(rbenchmark)
+library(ggplot2)
+i <- 20
+bench <- microbenchmark::microbenchmark(
+      "s" =  draw_s(y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), h = h_draws[i-1, -1]),
+       "h" =  draw_hX(mu = theta_draws[i-1, "mu"], beta = as.vector(theta_draws[i-1, "beta"]),
+                               phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
+                               y = y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1), s = s_draws[i, ], X = as.matrix(X)),
+    "theta" = draw_thetaX(h = h_draws[i, -1], h0 =  h_draws[i, 1],
+                                    prior = prior, theta_old = theta_draws[i-1, ], T_, X = X[-1, ]),
+    "zeta" =  draw_zeta(y = y, h = h_draws[i, -1], q = q_draws[i-1, ], delta = delta_draws[i-1]),
+    "q" = draw_q(y = y, h = h_draws[i, -1], zeta = zeta_draws[i, ], kappa = kappa_draws[i-1]),
+    "kappa" =  draw_kappa(q = q_draws[i, ], prior = prior),
+    "delta"  =  draw_delta(y = y, h = h_draws[i, -1], q = q_draws[i, ], prior = prior, delta_old = delta_draws[i-1])
+)
+autoplot(bench)
+```
+
+```{r}
+library(ggplot2)
+bench2 <- microbenchmark::microbenchmark(  
+  delta_old = delta_draws[i-1],
+  exph = exp(h_draws[i, -1]),
+  q = q_draws[i, ],
+
+  lp_delta <- function(x) -log(x) -.5/prior[["B_delta"]]*(log(x)-prior[["mu_delta"]])^2 -.5*sum(log(x^2*q^2+exph)) -.5*sum((y+.5*x^2*q)^2/(x^2*q^2+exph)),
+  prop_mean <-  optimize(lp_delta, lower = 0.0001, upper = 0.2, maximum = TRUE)$maximum,
+  prop_var <- 0.01^2,
+  delta_prop <- rnorm(1, prop_mean ,sqrt(prop_var)),
+  alpha_MH = lp_delta(delta_prop) - lp_delta(delta_old) + .5*(delta_old - prop_mean)^2/prop_var -.5*(delta_prop-prop_mean)^2/prop_var
+)
+
+autoplot(bench2)
+
+```
+
+```{r}
+y = y, , 
+
+q = q_draws[i, ]
+delta_old = delta_draws[i-1]
+exph = exp(h_draws[i, -1])
+
+library(Rmpfr)
+ T_ <- 100
+ q <- sample(c(0,1), T_, prob = c(0.9, 0.1), replace = TRUE) 
+ exph <- rbeta(T_, 1, 200)
+ x <- 1
+ 
+ lp_delta <- function(x) -log(x) -0.5*(log(x)-0.01)^2 -.5*sum(log(x^2*q+exph)) 
+ curve(lp_delta, from = 0, to =  1, n = 1000)
+
+ x <- seq(0.001,0.1, length.out = 1000)
+ y <- sapply(x, lp_delta)
+ plot(x, y, t = "l")
+
+x_max <-  x[which.max(y)]
+
+abline(v =x_max)
+
+bench3 <-  microbenchmark::microbenchmark(
+"a" = x_max1 <- x[which.max(y)],
+"b" = x_max2 <- optimizeR(lp_delta, lower = 0.0001, upper = 0.2, maximum = TRUE)$maximum,
+"c" = x_max3 <- optimize(lp_delta, lower = 0.0001, upper = 0.2, maximum = TRUE)$maximum, 
+"d" = optimise(lp_delta, interval = seq(0,1, length.out = 1000), maximum = TRUE)$maximum
+)
+autoplot(bench3)
+ 
+
+```
+
+
+
+
+
+
 

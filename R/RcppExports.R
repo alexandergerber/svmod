@@ -2,42 +2,17 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
-draw_s_cpp <- function(y, h) {
-    .Call('_svmod_draw_s_cpp', PACKAGE = 'svmod', y, h)
+draw_hX <- function(s, y, phi, sigma2, mu, X, beta) {
+    .Call('_svmod_draw_hX', PACKAGE = 'svmod', s, y, phi, sigma2, mu, X, beta)
 }
 
 #' @export
-draw_h_cpp <- function(y, s, phi, sigma2, mu) {
-    .Call('_svmod_draw_h_cpp', PACKAGE = 'svmod', y, s, phi, sigma2, mu)
+draw_s <- function(y, h) {
+    .Call('_svmod_draw_s', PACKAGE = 'svmod', y, h)
 }
 
-#' @export
-draw_theta_cpp <- function(h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv) {
-    .Call('_svmod_draw_theta_cpp', PACKAGE = 'svmod', h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv)
-}
-
-draw_theta_cpp_test <- function(h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv) {
-    .Call('_svmod_draw_theta_cpp_test', PACKAGE = 'svmod', h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv)
-}
-
-#' @export
-draw_hX_cpp <- function(y, s, X, beta, phi, sigma2, mu) {
-    .Call('_svmod_draw_hX_cpp', PACKAGE = 'svmod', y, s, X, beta, phi, sigma2, mu)
-}
-
-#' @export
-test_LAPACK <- function(s, y, phi, sigma2, mu) {
-    .Call('_svmod_test_LAPACK', PACKAGE = 'svmod', s, y, phi, sigma2, mu)
-}
-
-#' @export
-invGamme_cpp <- function(cT, CT) {
-    .Call('_svmod_invGamme_cpp', PACKAGE = 'svmod', cT, CT)
-}
-
-#' @export
-inv_Eigen <- function(M) {
-    .Call('_svmod_inv_Eigen', PACKAGE = 'svmod', M)
+timesTwo <- function(x) {
+    .Call('_svmod_timesTwo', PACKAGE = 'svmod', x)
 }
 
 #' @export
@@ -46,22 +21,37 @@ chol_Eigen <- function(M) {
 }
 
 #' @export
-eigen_mult <- function(A, X) {
-    .Call('_svmod_eigen_mult', PACKAGE = 'svmod', A, X)
+inv_Eigen <- function(M) {
+    .Call('_svmod_inv_Eigen', PACKAGE = 'svmod', M)
 }
 
 #' @export
-diagonal <- function(x) {
-    .Call('_svmod_diagonal', PACKAGE = 'svmod', x)
+dgemv <- function(A, x, y) {
+    invisible(.Call('_svmod_dgemv', PACKAGE = 'svmod', A, x, y))
 }
 
 #' @export
-solve_tri <- function(A, b) {
-    .Call('_svmod_solve_tri', PACKAGE = 'svmod', A, b)
+dpbtrf <- function(A, N) {
+    invisible(.Call('_svmod_dpbtrf', PACKAGE = 'svmod', A, N))
 }
 
 #' @export
-chol_sparse <- function(A) {
-    .Call('_svmod_chol_sparse', PACKAGE = 'svmod', A)
+dtbtrs <- function(A, x, ND) {
+    invisible(.Call('_svmod_dtbtrs', PACKAGE = 'svmod', A, x, ND))
+}
+
+#' @export
+dtbtrsT <- function(A, x, ND) {
+    invisible(.Call('_svmod_dtbtrsT', PACKAGE = 'svmod', A, x, ND))
+}
+
+#' @export
+dsbmv <- function(A, x, N) {
+    invisible(.Call('_svmod_dsbmv', PACKAGE = 'svmod', A, x, N))
+}
+
+#' @export
+UBMV <- function(v, phi, sigma2) {
+    invisible(.Call('_svmod_UBMV', PACKAGE = 'svmod', v, phi, sigma2))
 }
 

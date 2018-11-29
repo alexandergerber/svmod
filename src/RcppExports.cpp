@@ -7,129 +7,43 @@
 
 using namespace Rcpp;
 
-// draw_s_cpp
-Rcpp::IntegerVector draw_s_cpp(Rcpp::NumericVector y, Rcpp::NumericVector h);
-RcppExport SEXP _svmod_draw_s_cpp(SEXP ySEXP, SEXP hSEXP) {
+// draw_hX
+Rcpp::NumericVector draw_hX(Rcpp::IntegerVector s, Rcpp::NumericVector y, double phi, double sigma2, double mu, Rcpp::NumericMatrix X, Rcpp::NumericVector beta);
+RcppExport SEXP _svmod_draw_hX(SEXP sSEXP, SEXP ySEXP, SEXP phiSEXP, SEXP sigma2SEXP, SEXP muSEXP, SEXP XSEXP, SEXP betaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type s(sSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma2(sigma2SEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type beta(betaSEXP);
+    rcpp_result_gen = Rcpp::wrap(draw_hX(s, y, phi, sigma2, mu, X, beta));
+    return rcpp_result_gen;
+END_RCPP
+}
+// draw_s
+Rcpp::IntegerVector draw_s(Rcpp::NumericVector y, Rcpp::NumericVector h);
+RcppExport SEXP _svmod_draw_s(SEXP ySEXP, SEXP hSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type h(hSEXP);
-    rcpp_result_gen = Rcpp::wrap(draw_s_cpp(y, h));
+    rcpp_result_gen = Rcpp::wrap(draw_s(y, h));
     return rcpp_result_gen;
 END_RCPP
 }
-// draw_h_cpp
-Rcpp::NumericVector draw_h_cpp(Rcpp::NumericVector y, Rcpp::IntegerVector s, double phi, double sigma2, double mu);
-RcppExport SEXP _svmod_draw_h_cpp(SEXP ySEXP, SEXP sSEXP, SEXP phiSEXP, SEXP sigma2SEXP, SEXP muSEXP) {
+// timesTwo
+NumericVector timesTwo(NumericVector x);
+RcppExport SEXP _svmod_timesTwo(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type s(sSEXP);
-    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
-    Rcpp::traits::input_parameter< double >::type sigma2(sigma2SEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
-    rcpp_result_gen = Rcpp::wrap(draw_h_cpp(y, s, phi, sigma2, mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// draw_theta_cpp
-Rcpp::NumericVector draw_theta_cpp(double h0, const Rcpp::NumericVector& h, double mu, double phi, double sigma, double Bsigma, double a0, double b0, double bmu, double Bmu, double B011inv, double B022inv);
-RcppExport SEXP _svmod_draw_theta_cpp(SEXP h0SEXP, SEXP hSEXP, SEXP muSEXP, SEXP phiSEXP, SEXP sigmaSEXP, SEXP BsigmaSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP bmuSEXP, SEXP BmuSEXP, SEXP B011invSEXP, SEXP B022invSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type h0(h0SEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type h(hSEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
-    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
-    Rcpp::traits::input_parameter< double >::type Bsigma(BsigmaSEXP);
-    Rcpp::traits::input_parameter< double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< double >::type bmu(bmuSEXP);
-    Rcpp::traits::input_parameter< double >::type Bmu(BmuSEXP);
-    Rcpp::traits::input_parameter< double >::type B011inv(B011invSEXP);
-    Rcpp::traits::input_parameter< double >::type B022inv(B022invSEXP);
-    rcpp_result_gen = Rcpp::wrap(draw_theta_cpp(h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv));
-    return rcpp_result_gen;
-END_RCPP
-}
-// draw_theta_cpp_test
-Rcpp::List draw_theta_cpp_test(double h0, const Rcpp::NumericVector& h, double mu, double phi, double sigma, double Bsigma, double a0, double b0, double bmu, double Bmu, double B011inv, double B022inv);
-RcppExport SEXP _svmod_draw_theta_cpp_test(SEXP h0SEXP, SEXP hSEXP, SEXP muSEXP, SEXP phiSEXP, SEXP sigmaSEXP, SEXP BsigmaSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP bmuSEXP, SEXP BmuSEXP, SEXP B011invSEXP, SEXP B022invSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type h0(h0SEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type h(hSEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
-    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
-    Rcpp::traits::input_parameter< double >::type Bsigma(BsigmaSEXP);
-    Rcpp::traits::input_parameter< double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< double >::type bmu(bmuSEXP);
-    Rcpp::traits::input_parameter< double >::type Bmu(BmuSEXP);
-    Rcpp::traits::input_parameter< double >::type B011inv(B011invSEXP);
-    Rcpp::traits::input_parameter< double >::type B022inv(B022invSEXP);
-    rcpp_result_gen = Rcpp::wrap(draw_theta_cpp_test(h0, h, mu, phi, sigma, Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv));
-    return rcpp_result_gen;
-END_RCPP
-}
-// draw_hX_cpp
-Rcpp::List draw_hX_cpp(const Eigen::Map<Eigen::VectorXd> y, Rcpp::IntegerVector s, const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> beta, const double phi, const double sigma2, const double mu);
-RcppExport SEXP _svmod_draw_hX_cpp(SEXP ySEXP, SEXP sSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP phiSEXP, SEXP sigma2SEXP, SEXP muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type s(sSEXP);
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type beta(betaSEXP);
-    Rcpp::traits::input_parameter< const double >::type phi(phiSEXP);
-    Rcpp::traits::input_parameter< const double >::type sigma2(sigma2SEXP);
-    Rcpp::traits::input_parameter< const double >::type mu(muSEXP);
-    rcpp_result_gen = Rcpp::wrap(draw_hX_cpp(y, s, X, beta, phi, sigma2, mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_LAPACK
-Rcpp::NumericVector test_LAPACK(Rcpp::IntegerVector s, Rcpp::NumericVector y, double phi, double sigma2, double mu);
-RcppExport SEXP _svmod_test_LAPACK(SEXP sSEXP, SEXP ySEXP, SEXP phiSEXP, SEXP sigma2SEXP, SEXP muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type s(sSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
-    Rcpp::traits::input_parameter< double >::type sigma2(sigma2SEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_LAPACK(s, y, phi, sigma2, mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// invGamme_cpp
-double invGamme_cpp(double cT, double CT);
-RcppExport SEXP _svmod_invGamme_cpp(SEXP cTSEXP, SEXP CTSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type cT(cTSEXP);
-    Rcpp::traits::input_parameter< double >::type CT(CTSEXP);
-    rcpp_result_gen = Rcpp::wrap(invGamme_cpp(cT, CT));
-    return rcpp_result_gen;
-END_RCPP
-}
-// inv_Eigen
-Eigen::MatrixXd inv_Eigen(Eigen::Map<Eigen::MatrixXd> M);
-RcppExport SEXP _svmod_inv_Eigen(SEXP MSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type M(MSEXP);
-    rcpp_result_gen = Rcpp::wrap(inv_Eigen(M));
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(timesTwo(x));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -144,67 +58,101 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// eigen_mult
-Eigen::MatrixXd eigen_mult(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::MatrixXd> X);
-RcppExport SEXP _svmod_eigen_mult(SEXP ASEXP, SEXP XSEXP) {
+// inv_Eigen
+Eigen::MatrixXd inv_Eigen(Eigen::Map<Eigen::MatrixXd> M);
+RcppExport SEXP _svmod_inv_Eigen(SEXP MSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type A(ASEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type X(XSEXP);
-    rcpp_result_gen = Rcpp::wrap(eigen_mult(A, X));
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type M(MSEXP);
+    rcpp_result_gen = Rcpp::wrap(inv_Eigen(M));
     return rcpp_result_gen;
 END_RCPP
 }
-// diagonal
-Eigen::SparseMatrix<double> diagonal(Rcpp::NumericVector x);
-RcppExport SEXP _svmod_diagonal(SEXP xSEXP) {
+// dgemv
+void dgemv(Rcpp::NumericMatrix A, Rcpp::NumericVector x, Rcpp::NumericVector y);
+RcppExport SEXP _svmod_dgemv(SEXP ASEXP, SEXP xSEXP, SEXP ySEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type A(ASEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(diagonal(x));
-    return rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
+    dgemv(A, x, y);
+    return R_NilValue;
 END_RCPP
 }
-// solve_tri
-Eigen::VectorXd solve_tri(Eigen::SparseMatrix<double> A, Eigen::VectorXd b);
-RcppExport SEXP _svmod_solve_tri(SEXP ASEXP, SEXP bSEXP) {
+// dpbtrf
+void dpbtrf(Rcpp::NumericVector A, int N);
+RcppExport SEXP _svmod_dpbtrf(SEXP ASEXP, SEXP NSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type A(ASEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type b(bSEXP);
-    rcpp_result_gen = Rcpp::wrap(solve_tri(A, b));
-    return rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type A(ASEXP);
+    Rcpp::traits::input_parameter< int >::type N(NSEXP);
+    dpbtrf(A, N);
+    return R_NilValue;
 END_RCPP
 }
-// chol_sparse
-Rcpp::List chol_sparse(Eigen::Map<Eigen::SparseMatrix<double> > A);
-RcppExport SEXP _svmod_chol_sparse(SEXP ASEXP) {
+// dtbtrs
+void dtbtrs(Rcpp::NumericVector A, Rcpp::NumericVector x, int ND);
+RcppExport SEXP _svmod_dtbtrs(SEXP ASEXP, SEXP xSEXP, SEXP NDSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::SparseMatrix<double> > >::type A(ASEXP);
-    rcpp_result_gen = Rcpp::wrap(chol_sparse(A));
-    return rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type ND(NDSEXP);
+    dtbtrs(A, x, ND);
+    return R_NilValue;
+END_RCPP
+}
+// dtbtrsT
+void dtbtrsT(Rcpp::NumericVector A, Rcpp::NumericVector x, int ND);
+RcppExport SEXP _svmod_dtbtrsT(SEXP ASEXP, SEXP xSEXP, SEXP NDSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type ND(NDSEXP);
+    dtbtrsT(A, x, ND);
+    return R_NilValue;
+END_RCPP
+}
+// dsbmv
+void dsbmv(Rcpp::NumericVector A, Rcpp::NumericVector x, int N);
+RcppExport SEXP _svmod_dsbmv(SEXP ASEXP, SEXP xSEXP, SEXP NSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type A(ASEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type N(NSEXP);
+    dsbmv(A, x, N);
+    return R_NilValue;
+END_RCPP
+}
+// UBMV
+void UBMV(Rcpp::NumericVector& v, double phi, double sigma2);
+RcppExport SEXP _svmod_UBMV(SEXP vSEXP, SEXP phiSEXP, SEXP sigma2SEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector& >::type v(vSEXP);
+    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma2(sigma2SEXP);
+    UBMV(v, phi, sigma2);
+    return R_NilValue;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_svmod_draw_s_cpp", (DL_FUNC) &_svmod_draw_s_cpp, 2},
-    {"_svmod_draw_h_cpp", (DL_FUNC) &_svmod_draw_h_cpp, 5},
-    {"_svmod_draw_theta_cpp", (DL_FUNC) &_svmod_draw_theta_cpp, 12},
-    {"_svmod_draw_theta_cpp_test", (DL_FUNC) &_svmod_draw_theta_cpp_test, 12},
-    {"_svmod_draw_hX_cpp", (DL_FUNC) &_svmod_draw_hX_cpp, 7},
-    {"_svmod_test_LAPACK", (DL_FUNC) &_svmod_test_LAPACK, 5},
-    {"_svmod_invGamme_cpp", (DL_FUNC) &_svmod_invGamme_cpp, 2},
-    {"_svmod_inv_Eigen", (DL_FUNC) &_svmod_inv_Eigen, 1},
+    {"_svmod_draw_hX", (DL_FUNC) &_svmod_draw_hX, 7},
+    {"_svmod_draw_s", (DL_FUNC) &_svmod_draw_s, 2},
+    {"_svmod_timesTwo", (DL_FUNC) &_svmod_timesTwo, 1},
     {"_svmod_chol_Eigen", (DL_FUNC) &_svmod_chol_Eigen, 1},
-    {"_svmod_eigen_mult", (DL_FUNC) &_svmod_eigen_mult, 2},
-    {"_svmod_diagonal", (DL_FUNC) &_svmod_diagonal, 1},
-    {"_svmod_solve_tri", (DL_FUNC) &_svmod_solve_tri, 2},
-    {"_svmod_chol_sparse", (DL_FUNC) &_svmod_chol_sparse, 1},
+    {"_svmod_inv_Eigen", (DL_FUNC) &_svmod_inv_Eigen, 1},
+    {"_svmod_dgemv", (DL_FUNC) &_svmod_dgemv, 3},
+    {"_svmod_dpbtrf", (DL_FUNC) &_svmod_dpbtrf, 2},
+    {"_svmod_dtbtrs", (DL_FUNC) &_svmod_dtbtrs, 3},
+    {"_svmod_dtbtrsT", (DL_FUNC) &_svmod_dtbtrsT, 3},
+    {"_svmod_dsbmv", (DL_FUNC) &_svmod_dsbmv, 3},
+    {"_svmod_UBMV", (DL_FUNC) &_svmod_UBMV, 3},
     {NULL, NULL, 0}
 };
 

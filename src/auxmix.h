@@ -1,5 +1,9 @@
 #pragma once
 
+// // [[Rcpp::depends(RcppArmadillo)]]
+// #include <RcppArmadilloExtensions/sample.h>
+
+#include<Rcpp.h>
 
 // Some constants relating to the approximation of log(chisq) trough
 // normal mixture (from Omori et al., 2007), and

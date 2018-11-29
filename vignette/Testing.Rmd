@@ -2,382 +2,137 @@
 title: "Untitled"
 author: "Alexander Gerber"
 date: "19 Oktober 2018"
+header-includes:
+ - \usepackage{bbm}
+ - \usepackage{amsmath}
+ - \DeclareMathOperator{\diag}{diag} 
+ - \newcommand{\post}{\overline }
+ - \newcommand{\prior}{\underline }
 output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
-
-```{r setup, include=FALSE}
+  
+  ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-```{r}
-
-load("Data/BTC.rda")
-BTC_ld <- diff(log(BTC$Close))
-library(svmod)
-library(stochvol)
-library(tidyverse)
-```
 
 
-```{r}
-res_BTC <- svmod::SV_C_sample_efficient(BTC_ld, draws = 10000, verbose = TRUE, print_every = 10)
-svmod::SVJ_C_sample_efficient(BTC_ld, draws = 100, verbose = TRUE, print_every = 10)
-```
+## The Model 
 
+The observation equation: 
+  \[ y_t = exp\left(\frac{h_t}{2}\right) + \epsilon_t\text{, } \qquad \epsilon_t \sim N(0,1) \]
+which can be rewritten to 
+\[\log(y_t^2) = h_t + log(\epsilon_t^2)\]
+if we approximate $log(\epsilon_t^2)$ by a gaussian mixture rv $\upsilon$ with 
+$\upsilon_i|s_i \sim N(d_{s_i}, \sigma^2_{s_i})$ the model is conditional on the mixture component indicator
+linear and Gaussian. 
 
-## Generate Data without jumps
-```{r}
-phi      <- c(0.98, 0.95, 0.8)
-mu_h     <- c(-5)
-sigma2_u <- c(0.025, 0.05, 0.1, 0.5, 1)
-mu_y     <- 0
-kappa    <- 0
-delta    <- 0
-spec_grid <- expand.grid("phi" = phi, sigma2_u = sigma2_u, mu_h = mu_h, mu_y = mu_y, kappa = kappa, delta = delta)
-spec_grid <- spec_grid %>% mutate(spec = 1:n())
-set.seed(1)
-DGP <- apply(spec_grid, 1, create_sv, T_= 1000)
-```
+System of state equations:
+  \begin{align*}
+h_0 &= \mu + \sqrt{\frac{\sigma^2}{1-\phi^2}} u_0\\
+h_1 &= X_1 \beta +  (1 - \phi)\mu + \phi h_0 + \sigma u_1\\
+\vdots\\
+h_T &= X_T \beta +  (1 - \phi)\mu + \phi h_{T-1} + \sigma u_T\\
+\end{align*}
 
+where $u_t \sim N(0,1)$.
 
-## Generate Data with jumps
-```{r}
-phi      <- c(0.95)
-mu_h     <- c(-7)
-sigma2_u <- c(0.1)
-mu_y     <- 0
-kappa    <- 0.04
-delta    <- 0.2
-spec_grid <- expand.grid("phi" = phi, sigma2_u = sigma2_u, mu_h = mu_h, mu_y = mu_y, kappa = kappa, delta = delta)
-spec_grid <- spec_grid %>% mutate(spec = 1:n())
-set.seed(1)
-DGP <- apply(spec_grid, 1, create_sv, T_= 1000)
-plot(DGP[[1]]$y)
-
-a <- svmod::SV(DGP[[1]]$y, draws = 1000, verbose = TRUE, print_every = 500)
-b <- svmod::SVJ(DGP[[1]]$y, draws = 1000, verbose = TRUE, print_every = 500)
-
-```
-
-
-```{r}
-draws <- 10000
-y <- DGP[[1]]$y
-
-   init = list("mu" = -8, "phi" = 0.9, "sigma2" = 0.4,
-                                              "h" = -6, "h0" = -9,   # h could be a vector
-                                              "q" = 0, "zeta" = 0.0,
-                                              "kappa" = 0.1, "delta" = 0.13
-                                  )
-                                  prior = list("b_mu" = 0, "B_mu" = 100,
-                                               "alpha_0" = 5, "beta_0" = 1.5,
-                                               "B_sigma" = 1,
-                                               "B_0" = cbind(c(1e12,0),c(0,1e8)),
-                                               "mu_delta" = 0.01, "B_delta" = 1,
-                                               "kappa_alpha" = 2, "kappa_beta" = 100
-                                  )
-
-
-  T_ <- length(y)
-  # Storage
-  s_draws     <- matrix(nrow = draws, ncol = T_)
-  h_draws     <- matrix(nrow = draws, ncol = T_)
-  q_draws     <- matrix(nrow = draws, ncol = T_)
-  zeta_draws  <- matrix(nrow = draws, ncol = T_)
-  # h_draws  <- matrix(nrow = draws, ncol = T_ + 1) # if h and h0 are sampled jointly
-  h0_draws <- numeric(draws)
-  theta_draws <- matrix(nrow = draws, ncol = 3,
-                        dimnames = list(NULL, c("mu", "phi", "sigma2"))
-  )
-  kappa_draws <- numeric(draws)
-  delta_draws <- numeric(draws)
-  # Define initial values
-  theta_draws[1, ] <-  c("mu"     = init[["mu"]],
-                         "phi"    = init[["phi"]],
-                         "sigma2" = init[["sigma2"]])
-  h_draws[1, ]     <- DGP[[1]]$h #init[["h"]]
+Rewritten in matrix notation: 
   
-  lag_y <- lag(y); lag_y[1] <- mean(y)
-  q_draws[1, ]     <- abs(lag_y - y) > 2*sd(y)
-  zeta_draws[1, ]  <- DGP[[1]]$k #init[["zeta"]]
-  h0_draws[1]      <- init[["h0"]]
-  kappa_draws[1]   <- init[["kappa"]]
-  delta_draws[1]   <- init[["delta"]]
- for(i in 2:draws){
-   # if(verbose == TRUE) if(i%%print_every == 0) print(i)
-    if(i%%1000 == 0) print(i)
-    s_draws[i, ] <- draw_s_cpp(y = (y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1)) , h = h_draws[i-1, ]) #
-    h_temp       <- draw_h_cpp(mu = theta_draws[i-1, "mu"],
-                               phi = theta_draws[i-1, "phi"], sigma2 = theta_draws[i-1, "sigma2"],
-                               y = (y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1)), s = s_draws[i, ])
-    h_draws[i, ]     <- h_temp[-1]
-    h0_draws[i]      <- h_temp[1]
-    theta_draws[i, ] <- draw_theta_cpp(h = h_draws[i, -1], h0 =  h0_draws[i],
-                                       mu = theta_draws[i-1, "mu"], phi = theta_draws[i-1, "phi"], sigma = sqrt(theta_draws[i-1, "sigma2"]),
-                                       Bsigma = prior[["B_sigma"]], a0 = prior[["alpha_0"]], b0 = prior[["beta_0"]],
-                                       bmu = prior[["b_mu"]],  Bmu= prior[["B_mu"]],
-                                       B011inv= 1/prior[["B_0"]][1,1],  B022inv = 1/prior[["B_0"]][2,2])
-    zeta_draws[i, ] <- draw_zeta(y = y, h = h_draws[i-1, ], q = q_draws[i-1, ], delta = delta_draws[i-1])
-    q_draws[i, ]    <- draw_q(y = y, h = h_draws[i-1, ], zeta = zeta_draws[i, ], kappa = kappa_draws[i-1])
-    kappa_draws[i]  <- draw_kappa(q = q_draws[i, ], prior = prior)
-    delta_draws[i]  <- draw_delta(y = y, h = h_draws[i-1, ], q = q_draws[i, ], prior = prior, delta_old = delta_draws[i-1])
- }
+  \[H_\phi h = X \beta + \gamma + \Sigma^{\frac{1}{2}} u\]
 
-```
+with 
+
+\[
+  H_\phi =  \begin{bmatrix}
+  1       &  0      & 0       & \dots  & 0        \\
+  -\phi    &  1      & 0       & \dots  & 0        \\
+  0       & -\phi   & 1       & \ddots & \vdots   \\
+  \vdots  & \ddots  & \ddots  & \ddots & 0        \\
+  0       & \dots   & 0       & -\phi  & 1 
+  \end{bmatrix}
+  \text{, }\quad \gamma = \begin{bmatrix}
+  \mu \\
+  (1-\phi) \mu \\
+  \vdots \\
+  (1 -\phi)\mu
+  \end{bmatrix}
+  \text{, } \quad X =  \begin{bmatrix}
+  0       &  \dots  & 0       \\
+  x_{11}  &  \dots  & x_{1k}  \\
+  \vdots  &  \vdots &  \vdots \\
+  x_{T1}  &  \dots & x_{Tk}   \\
+  \end{bmatrix}
+  \text{, } \quad \beta = \begin{bmatrix} 
+  \beta_1 \\
+  \vdots \\
+  \beta_k
+  \end{bmatrix}
+  \] 
+and $\Sigma = \diag \left(\frac{\sigma^2}{1-\phi^2}, \sigma^2, \ldots, \sigma^2 \right)$.
+
+Conditional on $X$ and the parameters 
+
+\[\prior{\hat{h}} = E[h|\phi, \mu, \beta, X] =  H^{-1}_\phi (X \beta + \gamma) \] 
+\[\prior{\Sigma}_h = Var[h|\phi, \sigma^2] =  (H^{\prime}_\phi \Sigma_u^{-1} H_\phi)^{-1} 
+   = \begin{bmatrix} 
+   \frac{1}{\sigma^2}                      &  \frac{-\phi}{\sigma^2}  & 0                      & \dots   & 0\\
+   \frac{-\phi}{\sigma^2} &  \frac{1 + \phi^2}{\sigma^2}                       & \frac{-\phi}{\sigma^2} & \ddots  & \vdots\\
+   0                      & \frac{-\phi}{\sigma^2}   & \ddots       & \ddots & 0   \\
+   \vdots                 & \ddots  & \ddots  & \frac{1 + \phi^2}{\sigma^2}  & \frac{-\phi}{\sigma^2}        \\
+   0                      & \dots   & 0       & \frac{-\phi}{\sigma^2}  & \frac{1}{\sigma^2}
+   \end{bmatrix}
+   \]
 
 
-```{r}
+and hence 
 
-plot(y - q_draws[i-1, ] * (exp(zeta_draws[i-1, ]) - 1))
+\[h|\phi, \mu, \beta, X, \sigma^2 \sim N(\prior{\hat{h}}, \prior{\Sigma}_h)\]
 
-q_draw <-  draw_q(y = y, h = DGP[[1]]$h, zeta = DGP[[1]]$k, kappa = kappa_draws[1]) ## looks good
-plot(y)
-points(y[q_draw == 1] ~ which(q_draw == 1), col = "blue")
+Priors: 
+  \[\frac{(\phi + 1)}{2} \sim \mathcal{B}(a_0, b_0)\] and hence
+  \[p(\phi) = \frac{1}{2 B(a_0, b_0)} \left(\frac{1 + \phi}{2}\right)^{a_0 - 1} \left(\frac{1 - \phi}{2} \right) ^{b_0-1}\]
+
+  \[\sigma^2 \sim B_\sigma \chi_1^2 = \mathcal{G(1/2, 1/(2 B_{\sigma} )}\] 
   
-zeta_draw <- draw_zeta(y = y, h = DGP[[1]]$h, q = DGP[[1]]$q, delta = delta_draws[i-1]) ## looks good
-plot(DGP[[1]]$k[DGP[[1]]$q == 1])
-points(zeta_draw[DGP[[1]]$q == 1], col = "blue")
-
-kappa_draw <- draw_kappa(q = DGP[[1]]$q, prior = prior) ## looks good
-
-delta_draw  <- draw_delta(y = y, h =DGP[[1]]$h, q = DGP[[1]]$q, prior = prior, delta_old = 0.2) ## looks good
-
-
-
-q_draw <-  draw_q(y = y, h = DGP[[1]]$h, zeta = DGP[[1]]$k, kappa = kappa_draws[1]) ## looks good
-plot(y)
-points(y[q_draw == 1] ~ which(q_draw == 1), col = "blue")
+  \[\beta, \mu \sim N\left(\begin{pmatrix}\prior{\hat{\beta}} \\\prior{\hat{\mu}}\end{pmatrix}, \begin{pmatrix} \prior{\sigma^2_{\beta}} & 0\\0 & \prior{\sigma^2_{\alpha}}\end{pmatrix} \right)\]
   
-zeta_draw <- draw_zeta(y = y, h = DGP[[1]]$h, q = DGP[[1]]$q, delta = delta_draws[i-1]) ## looks good
-plot(DGP[[1]]$k[DGP[[1]]$q == 1])
-points(zeta_draw[DGP[[1]]$q == 1], col = "blue")
-
-kappa_draw <- draw_kappa(q = DGP[[1]]$q, prior = prior) ## looks good
-
-delta_draw  <- draw_delta(y = y, h =DGP[[1]]$h, q = DGP[[1]]$q, prior = prior, delta_old = 0.2) ## looks good
-
-
-plot(delta_draws)
-mean(delta_draws)
-plot(kappa_draws)
-plot(colMeans(zeta_draws[-1, ]))
-points(DGP[[1]]$k, col = "red")
-
-plot(colMeans(q_draws[-1, ]))
-plot( DGP[[1]]$h)
-lines(colMeans(h_draws[-1, ]))
-cor( DGP[[1]]$h, colMeans(h_draws[-1, ]))
-```
-
-
-
-
-
-
-
-
-
-
-```{r}
-prior = list("b_mu" = 0, "B_mu" = 100,
-                                               "alpha_0" = 5, "beta_0" = 1.5,
-                                               "B_sigma" = 1,
-                                               "B_0" = cbind(c(1e12,0),c(0,1e8)),
-                                               "mu_delta" = 0.01, "B_delta" = 1,
-                                               "kappa_alpha" = 2, "kappa_beta" = 100
-                                  )
-y <- DGP[[1]]$y
-h <- DGP[[1]]$h
-q <- DGP[[1]]$q
-k <- DGP[[1]]$k
-kappa <- DGP[[1]]$para["kappa.kappa"]
-delta <- DGP[[1]]$para["delta.delta"]
-
-draw_q <- function(y, h, zeta, kappa, prior){
-  p1 <- kappa * dnorm(y, k, sqrt(exp(h)))
-  p0 <- (1 - kappa) * dnorm(y, 0,  sqrt(exp(h)))
-  q <- rbinom(length(y), 1, p1 / (p1 + p0))
-  q
-}
-
-plot(q)
-q_draw <- draw_q(y, h, k, kappa, prior)
-
-sum(q == q_draw)
-
-plot(y)
-points(y[q==1] ~ which(q==1), col = "red")
-points(y[q_draw==1] ~ which(q_draw==1), col = "blue")
-
-draw_kappa <- function(q, prior){
-  rbeta(1, prior[["kappa_alpha"]] + sum(q), prior[["kappa_beta"]] + length(q) - sum(q))
-}
-
-draw_kappa(q, prior)
-draw_kappa(q_draw, prior)
-
-draw_zeta <- function(y, h, q, delta){
-  exph <- exp(h)
-  zeta_var = 1/(1/delta^2 + 1/exph[q == 1])
-  zeta_hat = zeta_var * (-.5 + (y[q == 1])/exph[q == 1])
-  zeta_draw <- numeric(length = length(y))
-  zeta_draw[q== 0] <- rnorm(length(y) - sum(q), -0.5 * delta^2, delta)
-  zeta_draw[q== 1] <- rnorm(sum(q), zeta_hat, sqrt(zeta_var))
   
-  #zeta_draw <- ifelse(q == 0, rnorm(length(y) - sum(q), -0.5 * delta^2, delta), rnorm(sum(q), zeta_hat, sqrt(zeta_var)))
-  zeta_draw
-}
+## Gibbs Sampler
+  
+  
+  Sample $h$ (including $h_0$) from 
+\[h|y, s, \phi, \mu, \sigma^2, \beta \sim N(\post{\hat{h}}, \post{\Sigma}_h)\]
 
-plot( zeta_draw[q== 1])
-points(zeta_hat, col = "red")
+where the precision matrix
 
-plot(k[q==1])
-points(zeta_hat, col = "red")
-points(zeta_draw, col = "blue")
-plot(k)
-zeta_draw <- draw_zeta(y, h, q, delta)
-plot(k[q == 1])
-points(zeta_draw[q == 1], col = "red")
-cor(k[q==1], exp(zeta_draw[q == 1])-1)
+\[\post{\Sigma}_h^{-1} = (\Sigma_y^{-1} + \prior{\Sigma}_h^{-1}) = 
+     \begin{bmatrix} 
+   \frac{1}{\sigma^2}    &  \frac{-\phi}{\sigma^2}  & 0                      & \dots   & 0\\
+   \frac{-\phi}{\sigma^2}                           &  \frac{1 + \phi^2}{\sigma^2} + \frac{1}{\sigma^2_{s_1}} & \frac{-\phi}{\sigma^2} & \ddots  & \vdots\\
+   0                                                & \frac{-\phi}{\sigma^2}   & \ddots       & \ddots & 0   \\
+   \vdots                                           & \ddots  & \ddots  & \frac{1 + \phi^2}{\sigma^2} + \frac{1}{\sigma^2_{s_{T-1}}}  & \frac{-\phi}{\sigma^2}        \\
+   0                                                & \dots   & 0       & \frac{-\phi}{\sigma^2}  & \frac{1}{\sigma^2} + \frac{1}{\sigma^2_{s_T}}
+   \end{bmatrix}\]. 
+\[ \qquad \post{\hat{h}} = \post{\Sigma}_h (\Sigma_y^{-1} (y - d) + \prior{\Sigma}_h^{-1} \prior{\hat{h}})\] 
+and the mean vector 
+\begin{align*}
+\post{\hat{h}} &= \post{\Sigma}_h (\Sigma_y^{-1} (y - d) + \prior{\Sigma}_h^{-1} \prior{\hat{h}})\\
+&= \post{\Sigma}_h (\Sigma_y^{-1} (y - d) + H^{\prime}_\phi \Sigma_u^{-1} (X \beta + \gamma))
+\end{align*}
 
-draw_delta <- function(y, h, q, prior, delta_old){
-  exph <- exp(h)
-  lp_delta <- function(x) -log(x) -.5/prior[["B_delta"]]*(log(x)-prior[["mu_delta"]])^2 -.5*sum(log(x^2*q^2+exph)) -.5*sum((y+.5*x^2*q)^2/(x^2*q^2+exph))
-  prop_mean <-  optimise(lp_delta, interval = seq(0,1, length.out = 100000), maximum = TRUE)$maximum
-  prop_var <- 0.01^2
-  delta_prop <- rnorm(1, prop_mean ,sqrt(prop_var))
-  if (delta_prop > 0){
-    alpha_MH = lp_delta(delta_prop) - lp_delta(delta_old) + .5*(delta_prop - prop_mean)^2/prop_var -.5*(delta_old-prop_mean)^2/prop_var
-  } else alpha_MH = -Inf
-  if(alpha_MH > log(runif(1))){
-    return(delta_prop)
-  } else return(delta_old)
-}
+To efficiently sample from this distribuition we exploit the special structure of the precision matrix. 
 
 
-```
-
-
-
-
-```{r}
-prior = list("b_mu" = 0, "B_mu" = 100,
-             "alpha_0" = 5, "beta_0" = 1.5,
-             "B_sigma" = 1,
-             "B_0" = cbind(c(1e12,0),c(0,1e8)), 
-             "mu_delta" = 0.01, "B_delta" = 1,
-             "kappa_alpha" = 2, "kappa_beta" = 100
-             )
-set.seed(1)
-res <- SVJ_C_sample_efficient(DGP[[1]]$y, draws = 2, post = 1:2, verbose = TRUE, print_every = 1)
-
-
-plot(DGP[[1]]$h)
-lines(colMeans(res$h))
-
-plot(colMeans(res$q))
-plot(colMeans(res$zeta))
-points(zeta)
-```
-
-
-## TEst entire sampler
-```{r}
-
-# set.seed(1)set.seed(1)
-set.seed(1)
-res1 <- lapply(1:15, function(i) svmod::SV_C_sample_efficient(DGP[[i]]$y, draws = 50000, post = 40001:50000, verbose = TRUE)  )
-set.seed(1)
-res2 <- lapply(1:15, function(i) svmod::SV_C_sample_efficient_my_theta(DGP[[i]]$y, draws = 50000, post = 40001:50000, verbose = TRUE)  )
-# res2 <- lapply(1:15, function(i) stochvol::svsample(DGP[[i]]$y))
-
-plot(res1[[3]]$theta[,"phi"])
-i <- 1
-for(i in 1:15){
-plot(DGP[[i]]$h, type = "l", main = i)
-lines(colMeans(res1[[i]]$h), col = "blue")
-lines(colMeans(res2[[i]]$h), col = "red", lty = "dotted")
-Sys.sleep(1)
-}
-
-for(i in 1:15){
-plot(res1[[i]]$theta[,"phi"], col = "blue", type = "p", main = i)
-lines(res2[[i]]$theta[,"phi"], col = "red")
-Sys.sleep(1)
-}
-```
-```{r}
-svmod::SV_C_sample_efficient(DGP[[1]]$y, draws = 11000, post = 1001:11000, verbose = TRUE) 
-```
-
-
-## Test specific Functions 
-```{r}
-init = c("mu" = -10, "phi" = 0.8, "sigma2" = 0.025)
-prior = list("b_mu" = 0, "B_mu" = 100,
-             "alpha_0" = 5, "beta_0" = 1.5,
-             "B_sigma" = 1,
-             "B_0" = cbind(c(1e12,0),c(0,1e8))
-)
-theta_old <- init 
-
-T_ <-  length(DGP[[1]]$h)
-h0 = -10
-h <-  rep(-10, 1000)
-#h <- DGP[[3]]$h  
-
-set.seed(1)
-sigma     <- sqrt(theta_old["sigma2"])
-  X         <- cbind(1, c(h0,  h[-T_] ))
-  B_T       <- inv_22( crossprod(X) + solve(prior[["B_0"]]) )  ## B_0 prior for proposal density
-  chol_Eigen_R(B_T[2:1, 2:1])
-
-  b_T       <- B_T %*% t(X) %*% h
-  C_T       <- 1/2 * (sum(h^2) - t(b_T) %*% t(X) %*% h)
-  c_T       <- (T_-1)/2
-  sigma2_prop <- 1/rgamma(1, c_T, C_T)
-  beta_prop <- b_T[2:1] + sigma * t(chol(B_T[2:1, 2:1])) %*% rnorm(2)
-  phi_prop  <- beta_prop[1]
-  gamma_prop  <- beta_prop[2]
-    set.seed(1)
-  invEigen_R  
-svmod::invGamme_cpp_R( c_T, C_T)  
-  sigma2_prop; phi_prop; gamma_prop
- 
-   set.seed(1)
-a <- draw_theta_cpp_test_R(h =h, h0 = h0, p = prior, theta_old = init, T_ = length(h))
-
-a[7:9]
-B_T[c(1,3,4)]
-set.seed(1)
-  sigma2_prop <- 1/rgamma(1, c_T, scale = 1/C_T)
-
-library(svmod)
-k <- 1
-for(i in 1:15){
-set.seed(k)  
-a <- svmod::draw_theta_cpp_test_R(h = DGP[[i]]$h, h0 = -10, prior = prior, theta_old = init)[1:3]
-set.seed(k) 
-
-b <- svmod::draw_theta(h = DGP[[i]]$h, h0 = -10, prior = prior, theta_old = init, T_ = length(h))
-print(rbind(a,b))
-k <- k+1
-}
-
-```
-
-
-
-```{r}
-bench <- microbenchmark::microbenchmark(
-  my = svmod::SV_C_sample_efficient(DGP[[2]]$y, draws = 11000, post = 1001:11000, verbose = FALSE), 
-  stochvol = stochvol::svsample(DGP[[2]]$y, expert = list(parameterization = "centered"))
-)
-library(microbenchmark)
-ggplot2::autoplot(bench)
-```
+\[H^{\prime}_\phi \Sigma_u^{-1}  = \begin{bmatrix} 
+  \frac{1 - \phi^2}{\sigma^2}     &  \frac{-\phi}{\sigma^2}  & 0                      & \dots   & 0\\
+  0                               &  \frac{1}{\sigma^2}                      & \frac{-\phi}{\sigma^2} & \ddots  & \vdots\\
+  \vdots                          &  \ddots       & \ddots  & \ddots & 0   \\
+  \vdots                          &               &  \ddots  &  \frac{1}{\sigma^2} & \frac{-\phi}{\sigma^2}        \\
+  0                               & \dots   & \dots  & 0      & \frac{1}{\sigma^2}
+  \end{bmatrix}
+  \]
 
 

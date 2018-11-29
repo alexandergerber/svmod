@@ -68,7 +68,6 @@ Eigen::MatrixXd eigen_mult(Eigen::Map<Eigen::MatrixXd> A, Eigen::Map<Eigen::Matr
   return(A * X);
 }
 
-
 Eigen::SparseMatrix<double> lag_matrix(int n, double phi){
   typedef Eigen::Triplet<double> T;
   // Create H_phi
